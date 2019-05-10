@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+ 
+ 
+ 
+ <bean id="myRealm" class="com.bcy.util.realm.MyShiroRealm"/>  
+  
+    <!-- 定义缓存管理器 --> 
+   <bean id="cacheManager" class="org.apache.shiro.cache.MemoryConstrainedCacheManager" /> 
+   <bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+	  <constructor-arg value="sid"/>
+	  <property name="httpOnly" value="true"/>
+	  <property name="maxAge" value="180000"/>
+   </bean>
+   <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+       <property name="sessionIdCookieEnabled" value="true"/>
+       <property name="sessionIdCookie" ref="sessionIdCookie"/>
+       <property name="deleteInvalidSessions" value="true"/>
+        <property name="sessionValidationSchedulerEnabled" value="true"/>
+        <property name="sessionValidationInterval" value="600000"/><!--Session 超时检测时间 单位：毫秒-->
+       <!-- session的失效时长，单位毫秒 -->
+    <!--  <property name="globalSessionTimeout" value="600000"/> -->
+      <!-- 删除失效的session -->
+   </bean>
+ 
+    <!-- Shiro默认会使用Servlet容器的Session,可通过sessionMode属性来指定使用Shiro原生Session -->  
+    <!-- 即<property name="sessionMode" value="native"/>,详细说明见官方文档 -->  
+    <!-- 这里主要是设置自定义的单Realm应用,若有多个Realm,可使用'realms'属性代替 -->  
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">  
+        <property name="realm" ref="myRealm"/>
+        <!-- 使用配置的缓存管理器 --> 
+     <property name="cacheManager" ref="cacheManager"></property> 
+     <!-- 会话管理 -->
+     <property name="sessionManager" ref="sessionManager" />
+  </bean>
+    <!--==============================shiro的web过滤器====================================-->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="loginUrl" value="/user/login"/>
+        <property name="successUrl" value="/user/toIndex"/>
+        <property name="unauthorizedUrl" value="/user/error"/>
+        <property name="filterChainDefinitions">
+            <value>
+                <!--
+                    anon:匿名使用,用户不登录也可以访问,如 /item/** = anon
+                    authc:认证后才能使用           /order/** = authc
+                    roles:需要特定角色才能访问    /admin/** = roles["admin,test"]
+                    perms:需要特定权限才能访问    /admin/user/** = perms["user:add,user:delete"]
+                    user:必须存在用户,登录而不限制检查    /** = user
+
+                    rest: restFul风格 /adimn/** = rest[user]
+                    port: 限制访问端口 /admin/** = port[8088]
+                    authcBasic: 限制协议请求是https
+                    ssl: 安全的url请求,请求协议是http
+                -->
+                <!--切记此处路径名与前台传.递的路径名是一致的,除了在此处配置以外,还需要在spring.xml中进行配置-->
+                <!-- /** = anon
+                /jsp/** = anon设置静态资源文件为游客可访问 -->
+                <!-- /shiro/** = anon -->
+               <!--  /jsp/** = anon-->
+                /user/login = anon 
+                /user/loginCheck = anon
+                /user/admin1=roles[admin]
+                /** = authc
+              <!--   /css/** = anon设置静态资源文件为游客可访问
+                /js/** = anon设置静态资源文件为游客可访问
+                /fonts/** = anon设置静态资源文件为游客可访问
+                /images/** = anon设置静态资源文件为游客可访问
+                /layui/** = anon设置静态资源文件为游客可访问 -->
+                <!--配置用户退出
+                不用我们去实现退出，只要去访问一个退出的url（该 url是可以不存在），由LogoutFilter拦截住，清除session。
+                在applicationContext-shiro.xml配置LogoutFilter
+                -->
+                <!-- /login/logout = logout -->
+                <!--不拦截-->
+                <!-- /login/** = anon-->
+            </value>
+        </property>
+    </bean>
+
+    <!--生命周期的配置-->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+</beans>
